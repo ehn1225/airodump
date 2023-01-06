@@ -18,7 +18,7 @@ struct ieee80211_radiotap_header {
 	u_char dataRate;
 	u_int16_t ch_frequency;
 	u_int16_t ch_flags;
-	u_char antenna_signal;	
+	int8_t antenna_signal;	
 };
 
 struct ieee80211_beacon_frame{
@@ -35,7 +35,7 @@ struct ieee80211_wireless_management{
 	u_int16_t capablityInfo;
 	u_int8_t tagNumber;
 	u_int8_t tagLength;
-	unsigned char SSID[33];
+	unsigned char SSID[33]; //MAX length 32
 };
 
 void usage() {
@@ -60,6 +60,15 @@ bool parse(Param* param, int argc, char* argv[]) {
 	return true;
 }
 
+int Calc_ch(int frequency){
+	if(frequency >= 2412 && frequency <= 2472)
+		return (frequency-2412) /5 + 1;
+	else if( frequency >= 5170 && frequency <= 5825)
+		return (frequency-5170) /5 + 34;
+	else 
+		return -1;
+}
+
 int main(int argc, char* argv[]) {
 	if (!parse(&param, argc, argv))
 		return -1;
@@ -70,6 +79,8 @@ int main(int argc, char* argv[]) {
 		fprintf(stderr, "pcap_open_live(%s) return null - %s\n", param.dev_, errbuf);
 		return -1;
 	}
+
+	map<unsigned int, int> beacons;
 
 	while (true) {
 		struct pcap_pkthdr* header;
@@ -88,24 +99,35 @@ int main(int argc, char* argv[]) {
 
 		//Beacon 프레임인지 Type 확인
 		if(ntohs(beaconframe->frameCtl) != 0x8000){
-			printf("It's Not Beacon Frame\n");
+			//printf("It's Not Beacon Frame\n");
 		    continue; 
 		}
-
+		//SSID를 가지는지 확인
 		if(wireless_mgr->tagNumber != 0){
-			printf("tagNumber 0\n");
+			//printf("tagNumber 0\n");
 		    continue; 
 		}
 		else{
 			bool twodotfour = (radiotap->ch_flags & 0x0080);
-			int ch = -1;
-			if(twodotfour){
-				ch = ((radiotap->ch_frequency - 2412) / 5) + 1;
-			}
 			wireless_mgr->SSID[wireless_mgr->tagLength] = '\0';
-			printf("BSSID : %s, SSID : %s, frequency : %dMhz, type : %s, ch : %d\n", string(beaconframe->srcArrr).c_str(), wireless_mgr->SSID, radiotap->ch_frequency, (twodotfour) ? "2.4GHz" : "5GHz", ch);
+
+			//MAC 뒷 4바이트를 기준으로 id 생성
+			//id를 통해 Beacon 개수 관리
+			//5GHz 대역일 경우 2.4 GHz 대역과 구분하기 위해 +1 수행
+			uint8_t* mac(beaconframe->bssId);
+			unsigned int id;
+			memcpy((char*)&id, (char*)mac + 2, 4);
+			(!twodotfour) ? id++ : id;
+
+			if(beacons.find(id) != beacons.end()){
+				beacons[id] += 1;
+			}
+			else{
+				beacons[id] = 1;
+			}
+
+			printf("SSID : %s, BSSID : %s, ch : %d (%dMHz, %s), PWR : %d, Beacon : %d\n", wireless_mgr->SSID, string(beaconframe->srcArrr).c_str(),Calc_ch(radiotap->ch_frequency), radiotap->ch_frequency, (twodotfour) ? "2.4GHz" : "5GHz", radiotap->antenna_signal, beacons[id]);
 		}
-			
 	}
 
 	pcap_close(pcap);
