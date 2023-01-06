@@ -1,10 +1,10 @@
 LDLIBS += -lpcap
 
-all: AIRODUMP
+all: airodump
 
 mac.o : mac.h mac.cpp
 
-AIRODUMP : airodump.o mac.o
+airodump : airodump.o mac.o
 	$(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 clean:
