@@ -5,11 +5,19 @@ syntax: airodump [interface] <br>
 sample: airodump wlan0
 
 <h1>pcap 파일로 테스트 하는 방법</h1>
-<h2>1. 더미 무선 인터페이스 추가</h2>
+<h2>더미 무선 인터페이스 추가</h2>
 sudo modprobe mac80211_hwsim radios=1<br>
 <h2>인터페이스 목록 확인 방법</h2>
 iw dev <br>
 iwconfig
 <h2>tcpreplay로 더미 인터페이스에 패킷 전송</h2>
-sudo tcpreplay -i wlan1 sample.pcap <br>
-
+sudo tcpreplay -i wlan0 sample.pcap <br>
+<h2>구현된 항목들</h2>
+<ul>
+    <li>SSID</li>
+    <li>BSSID</li>
+    <li>Channel</li>
+    <li>Frequency</li>
+    <li>PWR</li>
+    <li>Beacon</li>
+</ul>

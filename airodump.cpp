@@ -1,3 +1,4 @@
+//20230106 Best of the Best 11th 이예찬
 #include <pcap.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -108,6 +109,7 @@ int main(int argc, char* argv[]) {
 		    continue; 
 		}
 		else{
+			//2.4GHz인지 5GHz인지 확인함
 			bool twodotfour = (radiotap->ch_flags & 0x0080);
 			wireless_mgr->SSID[wireless_mgr->tagLength] = '\0';
 
@@ -119,13 +121,12 @@ int main(int argc, char* argv[]) {
 			memcpy((char*)&id, (char*)mac + 2, 4);
 			(!twodotfour) ? id++ : id;
 
-			if(beacons.find(id) != beacons.end()){
+			if(beacons.find(id) != beacons.end())
 				beacons[id] += 1;
-			}
-			else{
+			else
 				beacons[id] = 1;
-			}
 
+			//화면 출력
 			printf("SSID : %s, BSSID : %s, ch : %d (%dMHz, %s), PWR : %d, Beacon : %d\n", wireless_mgr->SSID, string(beaconframe->srcArrr).c_str(),Calc_ch(radiotap->ch_frequency), radiotap->ch_frequency, (twodotfour) ? "2.4GHz" : "5GHz", radiotap->antenna_signal, beacons[id]);
 		}
 	}
