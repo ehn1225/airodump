@@ -63,8 +63,11 @@ bool parse(Param* param, int argc, char* argv[]) {
 }
 
 int Calc_ch(int frequency){
-	if(frequency >= 2412 && frequency <= 2472)
+	if(frequency >= 2412 && frequency <= 2484){	
+		if (frequency == 2484)
+			return (frequency-2412) /5;
 		return (frequency-2412) /5 + 1;
+	}
 	else if( frequency >= 5170 && frequency <= 5825)
 		return (frequency-5170) /5 + 34;
 	else 
@@ -113,8 +116,9 @@ int main(int argc, char* argv[]) {
 			unsigned short ch_offset = 4;
 			u_int32_t present_flags = radiotap->it_present_flags;
 
+			bool TSFT = false;
 			//MAC timestamp flag
-			if(present_flags & 0x00000001)
+			if(TSFT = (present_flags & 0x00000001))
 				ch_offset += 8;
 
 			//Flags flag
@@ -136,6 +140,10 @@ int main(int argc, char* argv[]) {
 				count++;
 			}
 			ch_offset += (4 * count);
+
+			//Alignment in Radiotap
+			if(count == 2 && TSFT)
+				ch_offset += 4;
 
 			//Channel 정보 파싱
 			struct ieee80211_radiotap_channel *radiotap_ch = (struct ieee80211_radiotap_channel *)(packet + ch_offset);
@@ -161,7 +169,7 @@ int main(int argc, char* argv[]) {
 			wireless_mgr->SSID[wireless_mgr->tagLength] = '\0';
 
 			//화면 출력
-			printf("SSID : %s, BSSID : %s, ch : %d (%dMHz, %s), PWR : %d, Beacon : %d\n", wireless_mgr->SSID, string(beaconframe->srcArrr).c_str(),Calc_ch(radiotap_ch->ch_frequency), radiotap_ch->ch_frequency, (twodotfour) ? "2.4GHz" : "5GHz", radiotap_ch->antenna_signal, beacons[id]);
+			printf("BSSID : %s, ch : %d (%dMHz, %s), PWR : %d, Beacon : %d, SSID : %s\n", string(beaconframe->srcArrr).c_str(),Calc_ch(radiotap_ch->ch_frequency), radiotap_ch->ch_frequency, (twodotfour) ? "2.4GHz" : "5GHz", radiotap_ch->antenna_signal, beacons[id], wireless_mgr->SSID);
 		}
 	}
 
