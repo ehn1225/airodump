@@ -14,9 +14,10 @@ struct ieee80211_radiotap_header {
     u_char it_version;
     u_char it_pad;
     u_int16_t it_len;
-	u_char it_present_flags[12];
-	u_char flags;
-	u_char dataRate;
+	u_int32_t it_present_flags;
+};
+
+struct ieee80211_radiotap_channel {
 	u_int16_t ch_frequency;
 	u_int16_t ch_flags;
 	int8_t antenna_signal;	
@@ -105,29 +106,62 @@ int main(int argc, char* argv[]) {
 		}
 		//SSID를 가지는지 확인
 		if(wireless_mgr->tagNumber != 0){
-			//printf("tagNumber 0\n");
 		    continue; 
 		}
 		else{
-			//2.4GHz인지 5GHz인지 확인함
-			bool twodotfour = (radiotap->ch_flags & 0x0080);
-			wireless_mgr->SSID[wireless_mgr->tagLength] = '\0';
+			//Channel frequency Offset from packet[0]
+			unsigned short ch_offset = 4;
+			u_int32_t present_flags = radiotap->it_present_flags;
 
-			//MAC 뒷 4바이트를 기준으로 id 생성
-			//id를 통해 Beacon 개수 관리
-			//5GHz 대역일 경우 2.4 GHz 대역과 구분하기 위해 +1 수행
-			uint8_t* mac(beaconframe->bssId);
+			//MAC timestamp flag
+			if(present_flags & 0x00000001)
+				ch_offset += 8;
+
+			//Flags flag
+			if(present_flags & 0x00000002)
+				ch_offset += 1;
+
+			//Data Rate flag
+			if(present_flags & 0x00000004)
+				ch_offset += 1;
+
+			//Channel flag
+			if(!(present_flags & 0x00000008))
+				printf("No Channel?");	
+			
+			//Handling Extended Presence masks
+			int count = 1;
+			while(present_flags & 0x80000000){
+				memcpy((char*)&present_flags, packet + 4 * (count + 1), 4);
+				count++;
+			}
+			ch_offset += (4 * count);
+
+			//Channel 정보 파싱
+			struct ieee80211_radiotap_channel *radiotap_ch = (struct ieee80211_radiotap_channel *)(packet + ch_offset);
+			
+			//2.4GHz or 5Ghz 확인
+			bool twodotfour = (radiotap_ch->ch_flags & 0x0080);
+
+			//AP와 주파수 대역을 구분하여 Beacon을 카운트하기 위해
+			//BSSID MAC 뒷 4바이트를 이용해 id 생성
 			unsigned int id;
+			uint8_t* mac(beaconframe->bssId);
 			memcpy((char*)&id, (char*)mac + 2, 4);
+			//5GHz 대역일 경우 2.4 GHz 대역과 구분하기 위해 +1 수행
 			(!twodotfour) ? id++ : id;
 
+			//std::map 자료구조를 이용하여 beacon 카운트
 			if(beacons.find(id) != beacons.end())
 				beacons[id] += 1;
 			else
 				beacons[id] = 1;
 
+			//char array SSID를 %s 로 출력하기 위해 널스트링 추가
+			wireless_mgr->SSID[wireless_mgr->tagLength] = '\0';
+
 			//화면 출력
-			printf("SSID : %s, BSSID : %s, ch : %d (%dMHz, %s), PWR : %d, Beacon : %d\n", wireless_mgr->SSID, string(beaconframe->srcArrr).c_str(),Calc_ch(radiotap->ch_frequency), radiotap->ch_frequency, (twodotfour) ? "2.4GHz" : "5GHz", radiotap->antenna_signal, beacons[id]);
+			printf("SSID : %s, BSSID : %s, ch : %d (%dMHz, %s), PWR : %d, Beacon : %d\n", wireless_mgr->SSID, string(beaconframe->srcArrr).c_str(),Calc_ch(radiotap_ch->ch_frequency), radiotap_ch->ch_frequency, (twodotfour) ? "2.4GHz" : "5GHz", radiotap_ch->antenna_signal, beacons[id]);
 		}
 	}
 
