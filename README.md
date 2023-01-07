@@ -24,9 +24,13 @@ sudo tcpreplay -i wlan0 sample.pcap <br>
 </ul>
 <h2>Test Case</h2>
 <ul>
-    <li>80211-icmp.pcap</li>     : 통과
-    <li>80211-sample.pcap</li>   : 통과 / 비콘 테스트
-    <li>80211-sample1.pcap</li>  : 통과
-    <li>80211-sample2.pcap</li>  : 통과
-    <li>80211-sample3.pcap</li>  : 통과
+    <li>80211-icmp.pcap</li>
+    <li>80211-sample.pcap</li>
+    <li>80211-sample1.pcap</li>
+    <li>80211-sample2.pcap</li>
+    <li>80211-sample3.pcap</li>
+    <li>sample.pcap</li>
+    <li>sample2.pcap</li>
 </ul>
+
+<p>https://gitlab.com/gilgil/sns/-/wikis/dot11-frame/report-airodump</p>
