@@ -13,6 +13,10 @@ iwconfig
 <h2>tcpreplay로 더미 인터페이스에 패킷 전송</h2>
 sudo tcpreplay -i wlan0 sample.pcap <br>
 만약, 전송이 안될 경우, sudo airodump-ng wlan0 실행 후 다시 시도
+
+<h2>WireShark Beacon Frame 필터</h2>
+wlan.fc.type_subtype == 0x0008<br>
+
 <h2>구현된 항목들</h2>
 <ul>
     <li>SSID</li>
